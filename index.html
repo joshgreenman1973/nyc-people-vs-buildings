@@ -28,16 +28,16 @@
 <div class="panel panel-tr">
 
   <div id="legend-pop" class="legend">
-    <div class="legend-title">Persons per acre <span class="multiplier-note" id="mult-note">(extruded ×<span id="mult-val">8</span>)</span></div>
+    <div class="legend-title">Persons per acre <span class="multiplier-note" id="mult-note">(extruded ×<span id="mult-val">1</span>)</span></div>
     <div class="ramp ramp-pop"></div>
     <div class="ramp-labels"><span>0</span><span>50</span><span>150</span><span>300+</span></div>
     <label class="multiplier">
       Height multiplier:
       <select id="mult">
+        <option value="0.5">×0.5</option>
+        <option value="1" selected>×1</option>
         <option value="2">×2</option>
         <option value="4">×4</option>
-        <option value="8" selected>×8</option>
-        <option value="16">×16</option>
       </select>
     </label>
   </div>

@@ -98,8 +98,11 @@ const VIRIDIS_BLDG = [
 ];
 
 // Residential height multiplier (still needed because persons/acre is a count,
-// not a length — it has no inherent feet value).
-let multiplier = 8;
+// not a length — it has no inherent feet value). Default ×1 makes the two
+// views directly comparable visually: peak residential blocks (~2,700 ppa)
+// render in the same height range as the tallest NYC buildings (~1,500 ft),
+// so toggling shows where the visual mass *shifts* between the two views.
+let multiplier = 1;
 function popHeightExpr(mult) {
   return ["*", ["coalesce", ["to-number", ["get", "ppa"]], 0], mult];
 }
