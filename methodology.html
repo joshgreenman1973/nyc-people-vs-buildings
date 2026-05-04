@@ -89,28 +89,13 @@
 <h2>Built environment layer</h2>
 
 <h3>Source</h3>
-<p>NYC Department of Information Technology &amp; Telecommunications (DoITT), <strong>Building Footprints</strong>, dataset <code>5zhs-2jue</code> on NYC Open Data. 1,082,887 buildings citywide.</p>
-<p>Source: <a href="https://data.cityofnewyork.us/Housing-Development/Building-Footprints/5zhs-2jue">data.cityofnewyork.us/Housing-Development/Building-Footprints/5zhs-2jue</a></p>
+<p><strong>Google Photorealistic 3D Tiles</strong>, served via the Google Maps Platform Map Tiles API. The tileset is a textured mesh of New York City derived from aerial imagery, satellite imagery, and LiDAR &mdash; the same source that powers Google Earth's 3D view. Real building shapes (towers, setbacks, sloped roofs), trees, terrain, and even bridges.</p>
 
-<h3>Field used for height</h3>
-<p><code>height_roof</code> &mdash; the elevation of the building's roof above ground, in feet. Sourced from city LiDAR.</p>
+<h3>How it's loaded</h3>
+<p>The mesh is rendered with <a href="https://deck.gl">deck.gl</a>'s <code>Tile3DLayer</code> as an overlay on top of the same MapLibre GL camera used for the residential layer. Toggling between views does not change the camera, so you can compare the same vantage point.</p>
 
-<h3>Filters</h3>
-<ul>
-  <li>Only buildings with <code>height_roof &gt; 0</code> are included. Some footprints have no LiDAR-derived height (often new construction, demolitions, or features misclassified as buildings) and are excluded.</li>
-  <li>1,082,139 buildings shown.</li>
-</ul>
-
-<h3>Color ramp (built)</h3>
-<table>
-  <tr><th>Roof height (ft)</th><th>Color</th></tr>
-  <tr><td>0</td><td><code>#f7f4f9</code> off-white</td></tr>
-  <tr><td>50</td><td><code>#d4b9da</code> lavender</td></tr>
-  <tr><td>150</td><td><code>#df65b0</code> magenta</td></tr>
-  <tr><td>400</td><td><code>#ce1256</code> red-pink</td></tr>
-  <tr><td>1,000</td><td><code>#67001f</code> deep red</td></tr>
-</table>
-<p>Linear interpolation between breakpoints. Building heights are shown to scale (no multiplier).</p>
+<h3>Loading is gated</h3>
+<p>The 3D mesh is only fetched after a viewer clicks "Built." Passive visitors who land on the page never trigger any Google API calls. This keeps usage well within the free tier of the Google Maps Platform.</p>
 
 <h2>Tile pipeline</h2>
 <p>Data was tiled with <a href="https://github.com/felt/tippecanoe">tippecanoe</a> into PMTiles archives, served as static files. The browser reads only the byte ranges for tiles in view, so neither the 17 MB residential file nor the 69 MB buildings file is downloaded in full.</p>

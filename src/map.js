@@ -3,7 +3,6 @@ const protocol = new pmtiles.Protocol();
 maplibregl.addProtocol("pmtiles", protocol.tile);
 
 const POP_URL  = "pmtiles://./data/pop_blocks.pmtiles";
-const BLDG_URL = "pmtiles://./data/buildings.pmtiles";
 
 // Lightweight raster basemap (CARTO Voyager — free, attribution required).
 const STYLE = {
@@ -22,7 +21,6 @@ const STYLE = {
         '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     },
     pop:  { type: "vector", url: POP_URL },
-    bldg: { type: "vector", url: BLDG_URL },
   },
   layers: [
     { id: "basemap", type: "raster", source: "basemap" },
@@ -90,15 +88,6 @@ const POP_COLOR = [
   600, "#440154",
 ];
 
-const BLDG_COLOR = [
-  "interpolate", ["linear"], ["coalesce", ["to-number", ["get", "h"]], 0],
-  0,    "#f7f4f9",
-  50,   "#d4b9da",
-  150,  "#df65b0",
-  400,  "#ce1256",
-  1000, "#67001f",
-];
-
 map.on("load", () => {
   map.addLayer({
     id: "pop-extrusion",
@@ -110,20 +99,6 @@ map.on("load", () => {
       "fill-extrusion-base": 0,
       "fill-extrusion-color": POP_COLOR,
       "fill-extrusion-opacity": 0.85,
-    },
-  });
-
-  map.addLayer({
-    id: "bldg-extrusion",
-    type: "fill-extrusion",
-    source: "bldg",
-    "source-layer": "buildings",
-    layout: { visibility: "none" },
-    paint: {
-      "fill-extrusion-height": ["coalesce", ["to-number", ["get", "h"]], 0],
-      "fill-extrusion-base": 0,
-      "fill-extrusion-color": BLDG_COLOR,
-      "fill-extrusion-opacity": 0.92,
     },
   });
 
@@ -156,32 +131,85 @@ function setupRotateButtons() {
   if (right) right.addEventListener("click", () => map.easeTo({ bearing: map.getBearing() - 30, duration: 400 }));
 }
 
+let google3DOverlay = null;
+let googleCopyrightText = "";
+
+function ensureGoogle3D() {
+  if (google3DOverlay) return google3DOverlay;
+  const KEY = window.GOOGLE_3D_KEY;
+  if (!KEY) {
+    console.warn("No Google 3D key configured");
+    return null;
+  }
+  const Tile3DLayer = deck.Tile3DLayer;
+  const Tiles3DLoader = loaders.Tiles3DLoader;
+  const layer = new Tile3DLayer({
+    id: "google-3d-tiles",
+    data: `https://tile.googleapis.com/v1/3dtiles/root.json?key=${KEY}`,
+    loader: Tiles3DLoader,
+    loadOptions: { "3d-tiles": { loadGLTF: true } },
+    onTilesetLoad: (tileset) => {
+      tileset.options.onTraversalComplete = (selectedTiles) => {
+        const credits = new Set();
+        for (const t of selectedTiles) {
+          const c = t.content && t.content.credits;
+          if (c && c.length) for (const x of c) credits.add(x.text || x);
+        }
+        googleCopyrightText = [...credits].join(", ");
+        const el = document.getElementById("google-attribution");
+        if (el) el.textContent = "Imagery © " + googleCopyrightText;
+        return selectedTiles;
+      };
+    },
+  });
+  google3DOverlay = new deck.MapboxOverlay({
+    interleaved: false,
+    layers: [layer],
+  });
+  return google3DOverlay;
+}
+
 function setupToggle() {
   const btnPop = document.getElementById("btn-pop");
   const btnBldg = document.getElementById("btn-bldg");
   const legPop = document.getElementById("legend-pop");
   const legBldg = document.getElementById("legend-bldg");
+  const attrEl = document.getElementById("google-attribution");
 
   function showPop() {
     map.setLayoutProperty("pop-extrusion", "visibility", "visible");
-    map.setLayoutProperty("bldg-extrusion", "visibility", "none");
+    map.setLayoutProperty("basemap", "visibility", "visible");
+    if (google3DOverlay) {
+      try { map.removeControl(google3DOverlay); } catch (_) {}
+    }
     btnPop.classList.add("active");
     btnBldg.classList.remove("active");
     btnPop.setAttribute("aria-selected", "true");
     btnBldg.setAttribute("aria-selected", "false");
     legPop.classList.remove("hidden");
     legBldg.classList.add("hidden");
+    if (attrEl) attrEl.classList.add("hidden");
     activeView = "pop";
   }
   function showBldg() {
     map.setLayoutProperty("pop-extrusion", "visibility", "none");
-    map.setLayoutProperty("bldg-extrusion", "visibility", "visible");
+    map.setLayoutProperty("basemap", "visibility", "none");
+    const overlay = ensureGoogle3D();
+    if (overlay) {
+      try { map.addControl(overlay); } catch (_) {}
+    }
     btnBldg.classList.add("active");
     btnPop.classList.remove("active");
     btnBldg.setAttribute("aria-selected", "true");
     btnPop.setAttribute("aria-selected", "false");
     legBldg.classList.remove("hidden");
     legPop.classList.add("hidden");
+    if (attrEl) {
+      attrEl.textContent = googleCopyrightText
+        ? "Imagery © " + googleCopyrightText
+        : "Imagery © Google";
+      attrEl.classList.remove("hidden");
+    }
     activeView = "bldg";
   }
 
@@ -205,24 +233,20 @@ function setupTooltip() {
   const fmt1 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 
   map.on("mousemove", (e) => {
-    const layer = activeView === "pop" ? "pop-extrusion" : "bldg-extrusion";
-    const feats = map.queryRenderedFeatures(e.point, { layers: [layer] });
+    if (activeView !== "pop") {
+      tip.classList.add("hidden");
+      return;
+    }
+    const feats = map.queryRenderedFeatures(e.point, { layers: ["pop-extrusion"] });
     if (!feats.length) {
       tip.classList.add("hidden");
       return;
     }
     const p = feats[0].properties || {};
-    let html = "";
-    if (activeView === "pop") {
-      const ppa = Number(p.ppa) || 0;
-      const pop = Number(p.p) || 0;
-      const ac = Number(p.ac) || 0;
-      html = `<strong>${fmt1.format(ppa)}</strong> persons/acre<br>${fmt.format(pop)} people on ${fmt1.format(ac)} acres<br><span style="opacity:.7">${p.boro || ""}</span>`;
-    } else {
-      const h = Number(p.h) || 0;
-      html = `<strong>${fmt.format(Math.round(h))} ft</strong> roof height<br><span style="opacity:.7">BBL ${p.bbl || "—"}</span>`;
-    }
-    tip.innerHTML = html;
+    const ppa = Number(p.ppa) || 0;
+    const pop = Number(p.p) || 0;
+    const ac = Number(p.ac) || 0;
+    tip.innerHTML = `<strong>${fmt1.format(ppa)}</strong> persons/acre<br>${fmt.format(pop)} people on ${fmt1.format(ac)} acres<br><span style="opacity:.7">${p.boro || ""}</span>`;
     tip.style.left = e.point.x + "px";
     tip.style.top = e.point.y + "px";
     tip.classList.remove("hidden");

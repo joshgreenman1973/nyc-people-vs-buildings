@@ -157,6 +157,57 @@ h1 {
 .tooltip.hidden { display: none; }
 .tooltip strong { font-weight: 600; }
 
+.rotate-row {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.ghost-btn {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  color: #333;
+  flex: 0 0 auto;
+}
+
+.ghost-btn:hover { background: #f0ebde; }
+
+.ghost-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+#btn-orbit { flex: 1; }
+
+.hint {
+  margin: 4px 0 8px;
+  font-size: 11px;
+  color: #666;
+  line-height: 1.35;
+}
+
+.attribution-google {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10.5px;
+  color: #333;
+  z-index: 4;
+  pointer-events: none;
+  max-width: 60vw;
+  line-height: 1.3;
+}
+.attribution-google.hidden { display: none; }
+
 @media (max-width: 700px) {
   .panel-tl { max-width: calc(100% - 28px); }
   .panel-tr {
