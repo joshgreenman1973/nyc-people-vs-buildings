@@ -110,6 +110,10 @@ h1 {
   background: linear-gradient(to right, #f7f4f9, #d4b9da, #df65b0, #ce1256, #67001f);
 }
 
+.ramp-bldg-styled {
+  background: linear-gradient(to right, #f5e6b8 0%, #ffb084 20%, #ff6b9a 40%, #a946e0 60%, #3fc7ff 80%, #ffe34f 100%);
+}
+
 .ramp-labels {
   display: flex;
   justify-content: space-between;
