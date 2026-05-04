@@ -59,10 +59,10 @@ const STYLE = {
 const map = new maplibregl.Map({
   container: "map",
   style: STYLE,
-  center: [-73.97, 40.755],
-  zoom: 11,
-  pitch: 55,
-  bearing: -22,
+  center: [-73.987, 40.755],
+  zoom: 12.6,
+  pitch: 68,
+  bearing: -28,
   maxZoom: 17,
   minZoom: 9,
   maxPitch: 85,
@@ -129,10 +129,9 @@ const BLDG_COLOR_BASE = [
   1000, "#ffe34f", // 1000+    ft gold (supertalls)
 ];
 
-let bldgMultiplier = 2;
-function bldgHeightExpr(mult) {
-  return ["*", ["coalesce", ["to-number", ["get", "h"]], 0], mult];
-}
+// Buildings render at true 1:1 scale — height_roof feet are real measured
+// heights, so multiplying them would be a visual lie.
+const BLDG_HEIGHT_EXPR = ["coalesce", ["to-number", ["get", "h"]], 0];
 
 map.on("load", () => {
   map.addLayer({
@@ -155,7 +154,7 @@ map.on("load", () => {
     "source-layer": "buildings",
     layout: { visibility: "none" },
     paint: {
-      "fill-extrusion-height": bldgHeightExpr(bldgMultiplier),
+      "fill-extrusion-height": BLDG_HEIGHT_EXPR,
       "fill-extrusion-base": 0,
       "fill-extrusion-color": BLDG_COLOR_BASE,
       "fill-extrusion-opacity": 0.95,
@@ -250,15 +249,6 @@ function setupToggle() {
     map.setPaintProperty("pop-extrusion", "fill-extrusion-height", popHeightExpr(multiplier));
   });
 
-  const bmultSelect = document.getElementById("bmult");
-  const bmultVal = document.getElementById("bmult-val");
-  if (bmultSelect) {
-    bmultSelect.addEventListener("change", (e) => {
-      bldgMultiplier = parseFloat(e.target.value);
-      if (bmultVal) bmultVal.textContent = String(bldgMultiplier);
-      map.setPaintProperty("bldg-extrusion", "fill-extrusion-height", bldgHeightExpr(bldgMultiplier));
-    });
-  }
 }
 
 function setupOrbitButton() {
