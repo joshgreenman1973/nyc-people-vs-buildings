@@ -5,8 +5,8 @@ maplibregl.addProtocol("pmtiles", protocol.tile);
 const POP_URL  = "pmtiles://./data/pop_blocks.pmtiles";
 const BLDG_URL = "pmtiles://./data/buildings.pmtiles";
 
-// Stylized "diorama" basemap: dark, illustrated, no photographic noise.
-// CARTO's free dark-matter raster gives the right backdrop for vibrant extrusions.
+// Single neutral basemap for both views. CARTO Positron is a soft, low-saturation
+// raster — it stays out of the way of vibrant 3D extrusions on top.
 const STYLE = {
   version: 8,
   glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
@@ -22,23 +22,11 @@ const STYLE = {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     },
-    basemap_dark: {
-      type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
-        "https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png",
-      ],
-      tileSize: 256,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    },
     pop:  { type: "vector", url: POP_URL },
     bldg: { type: "vector", url: BLDG_URL },
   },
   layers: [
     { id: "basemap", type: "raster", source: "basemap" },
-    { id: "basemap_dark", type: "raster", source: "basemap_dark", layout: { visibility: "none" } },
   ],
 };
 
@@ -89,12 +77,10 @@ map.on("mousedown", stopOrbit);
 map.on("touchstart", stopOrbit);
 map.on("wheel", stopOrbit);
 
-// ----------- Residential layer config -----------
-let multiplier = 8;
-function popHeightExpr(mult) {
-  return ["*", ["coalesce", ["to-number", ["get", "ppa"]], 0], mult];
-}
-const POP_COLOR = [
+// ----------- Shared color palette (viridis) -----------
+// Same ramp for both views, so the visual A/B is purely about what's being
+// extruded — colors mean "low → high value" on each respective metric.
+const VIRIDIS_POP = [
   "interpolate", ["linear"], ["coalesce", ["to-number", ["get", "ppa"]], 0],
   0,   "#fde725",
   50,  "#5ec962",
@@ -102,24 +88,32 @@ const POP_COLOR = [
   300, "#3b528b",
   600, "#440154",
 ];
-
-// ----------- Built layer (stylized animated diorama) -----------
-// Vibrant categorical-by-height palette. Reads as illustration, not photo.
-const BLDG_COLOR_BASE = [
-  "step", ["coalesce", ["to-number", ["get", "h"]], 0],
-  "#f5e6b8",   //   0–30 ft  cream (rowhouses)
-  30, "#ffb084",   //  30–80 ft  peach
-  80, "#ff6b9a",   //  80–200 ft hot pink (mid-rise)
-  200, "#a946e0",  // 200–500 ft purple (towers)
-  500, "#3fc7ff",  // 500–1000 ft electric blue (highrises)
-  1000, "#ffe34f", // 1000+    ft gold (supertalls)
+const VIRIDIS_BLDG = [
+  "interpolate", ["linear"], ["coalesce", ["to-number", ["get", "h"]], 0],
+  0,    "#fde725",
+  50,   "#5ec962",
+  200,  "#21918c",
+  500,  "#3b528b",
+  1200, "#440154",
 ];
 
-// Buildings render at true 1:1 scale — height_roof feet are real measured
-// heights, so multiplying them would be a visual lie.
+// Residential height multiplier (still needed because persons/acre is a count,
+// not a length — it has no inherent feet value).
+let multiplier = 8;
+function popHeightExpr(mult) {
+  return ["*", ["coalesce", ["to-number", ["get", "ppa"]], 0], mult];
+}
+
+// Building heights are real measured feet — no multiplier (would be a lie).
 const BLDG_HEIGHT_EXPR = ["coalesce", ["to-number", ["get", "h"]], 0];
 
+const POP_OPACITY = 0.85;
+const BLDG_OPACITY = 0.95;
+
 map.on("load", () => {
+  // Both layers are added at startup with their proper visuals. We toggle
+  // between views by swapping opacity — tiles for both stream in immediately
+  // so the second click is instant, with no first-time fetch jank.
   map.addLayer({
     id: "pop-extrusion",
     type: "fill-extrusion",
@@ -128,8 +122,8 @@ map.on("load", () => {
     paint: {
       "fill-extrusion-height": popHeightExpr(multiplier),
       "fill-extrusion-base": 0,
-      "fill-extrusion-color": POP_COLOR,
-      "fill-extrusion-opacity": 0.85,
+      "fill-extrusion-color": VIRIDIS_POP,
+      "fill-extrusion-opacity": POP_OPACITY,
     },
   });
 
@@ -138,12 +132,11 @@ map.on("load", () => {
     type: "fill-extrusion",
     source: "bldg",
     "source-layer": "buildings",
-    layout: { visibility: "none" },
     paint: {
       "fill-extrusion-height": BLDG_HEIGHT_EXPR,
       "fill-extrusion-base": 0,
-      "fill-extrusion-color": BLDG_COLOR_BASE,
-      "fill-extrusion-opacity": 0.95,
+      "fill-extrusion-color": VIRIDIS_BLDG,
+      "fill-extrusion-opacity": 0,           // start hidden via opacity
       "fill-extrusion-vertical-gradient": true,
     },
   });
@@ -154,41 +147,6 @@ map.on("load", () => {
   setupRotateButtons();
 });
 
-// ----------- Diorama animation: moving sun over the skyline -----------
-// MapLibre's `light` controls how extrusions are shaded. Rotating the
-// light's azimuth slowly gives the city a "time-lapse" feel without
-// touching a single feature, so it stays cheap with 1M buildings.
-let lightRAF = null;
-function startLightAnimation() {
-  stopLightAnimation();
-  const start = performance.now();
-  function step(ts) {
-    const t = (ts - start) / 1000;          // seconds
-    const azimuth = (t * 6) % 360;           // 6°/s -> full sweep every 60s
-    const intensity = 0.45 + 0.18 * Math.sin(t * 0.6); // gentle pulse
-    map.setLight({
-      anchor: "viewport",
-      color: "#ffffff",
-      intensity,
-      position: [1.5, azimuth, 80],
-    });
-    lightRAF = requestAnimationFrame(step);
-  }
-  lightRAF = requestAnimationFrame(step);
-}
-function stopLightAnimation() {
-  if (lightRAF) {
-    cancelAnimationFrame(lightRAF);
-    lightRAF = null;
-  }
-  map.setLight({
-    anchor: "viewport",
-    color: "#ffffff",
-    intensity: 0.45,
-    position: [1.5, 90, 80],
-  });
-}
-
 function setupToggle() {
   const btnPop = document.getElementById("btn-pop");
   const btnBldg = document.getElementById("btn-bldg");
@@ -196,11 +154,8 @@ function setupToggle() {
   const legBldg = document.getElementById("legend-bldg");
 
   function showPop() {
-    map.setLayoutProperty("pop-extrusion", "visibility", "visible");
-    map.setLayoutProperty("bldg-extrusion", "visibility", "none");
-    map.setLayoutProperty("basemap", "visibility", "visible");
-    map.setLayoutProperty("basemap_dark", "visibility", "none");
-    stopLightAnimation();
+    map.setPaintProperty("pop-extrusion", "fill-extrusion-opacity", POP_OPACITY);
+    map.setPaintProperty("bldg-extrusion", "fill-extrusion-opacity", 0);
     btnPop.classList.add("active");
     btnBldg.classList.remove("active");
     btnPop.setAttribute("aria-selected", "true");
@@ -210,11 +165,8 @@ function setupToggle() {
     activeView = "pop";
   }
   function showBldg() {
-    map.setLayoutProperty("pop-extrusion", "visibility", "none");
-    map.setLayoutProperty("bldg-extrusion", "visibility", "visible");
-    map.setLayoutProperty("basemap", "visibility", "none");
-    map.setLayoutProperty("basemap_dark", "visibility", "visible");
-    startLightAnimation();
+    map.setPaintProperty("pop-extrusion", "fill-extrusion-opacity", 0);
+    map.setPaintProperty("bldg-extrusion", "fill-extrusion-opacity", BLDG_OPACITY);
     btnBldg.classList.add("active");
     btnPop.classList.remove("active");
     btnBldg.setAttribute("aria-selected", "true");
@@ -227,7 +179,7 @@ function setupToggle() {
   btnPop.addEventListener("click", showPop);
   btnBldg.addEventListener("click", showBldg);
 
-  // Keyboard shortcuts: 1 = Residential, 2 = Built, T or Space = toggle
+  // Keyboard: 1 = Residential, 2 = Built, T or Space = toggle
   document.addEventListener("keydown", (e) => {
     if (e.target && /input|select|textarea/i.test(e.target.tagName)) return;
     if (e.key === "1") { showPop(); e.preventDefault(); }
@@ -245,7 +197,6 @@ function setupToggle() {
     multVal.textContent = String(multiplier);
     map.setPaintProperty("pop-extrusion", "fill-extrusion-height", popHeightExpr(multiplier));
   });
-
 }
 
 function setupOrbitButton() {
