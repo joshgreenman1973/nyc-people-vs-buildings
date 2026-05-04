@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New York City: residential density vs. built environment</title>
+<meta name="description" content="A 3D map of New York City. Toggle between residential density (where people live) and built environment density (the physical mass of buildings).">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<div id="map"></div>
+
+<header class="panel panel-tl">
+  <h1>New York City: residential density vs. built environment</h1>
+  <p class="dek">Two views of the same city. <strong>Residential</strong> shows where people actually live, by 2020 Census block. <strong>Built</strong> shows the physical mass of buildings, by roof height. Tall buildings are not the same as crowded neighborhoods &mdash; lots of people work in towers where almost nobody sleeps.</p>
+</header>
+
+<div class="panel panel-tr">
+  <div class="toggle" role="tablist" aria-label="View">
+    <button id="btn-pop" class="active" role="tab" aria-selected="true">Residential</button>
+    <button id="btn-bldg" role="tab" aria-selected="false">Built</button>
+  </div>
+
+  <div id="legend-pop" class="legend">
+    <div class="legend-title">Persons per acre <span class="multiplier-note" id="mult-note">(extruded ×<span id="mult-val">8</span>)</span></div>
+    <div class="ramp ramp-pop"></div>
+    <div class="ramp-labels"><span>0</span><span>50</span><span>150</span><span>300+</span></div>
+    <label class="multiplier">
+      Height multiplier:
+      <select id="mult">
+        <option value="2">×2</option>
+        <option value="4">×4</option>
+        <option value="8" selected>×8</option>
+        <option value="16">×16</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="legend-bldg" class="legend hidden">
+    <div class="legend-title">Roof height (feet)</div>
+    <div class="ramp ramp-bldg"></div>
+    <div class="ramp-labels"><span>0</span><span>100</span><span>400</span><span>1,000+</span></div>
+  </div>
+
+  <p class="links"><a href="methodology.html">Methodology &amp; sources</a></p>
+</div>
+
+<div id="tooltip" class="tooltip hidden"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.0/dist/pmtiles.js"></script>
+<script src="src/map.js"></script>
+</body>
+</html>

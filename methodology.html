@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methodology &mdash; NYC residential density vs. built environment</title>
+<link rel="stylesheet" href="src/style.css">
+<style>
+  body { background: #f7f4ee; }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 36px 24px 80px;
+    line-height: 1.55;
+    font-size: 15px;
+    color: #222;
+  }
+  h1 { font-size: 26px; letter-spacing: -0.01em; margin-bottom: 6px; }
+  h2 { font-size: 18px; margin-top: 32px; }
+  h3 { font-size: 15px; margin-top: 22px; }
+  p, li { font-size: 14.5px; }
+  code {
+    background: #eee6d4;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 13.5px;
+  }
+  th, td { text-align: left; border-bottom: 1px solid #d8d2c5; padding: 6px 8px; }
+  th { background: #eee6d4; }
+  .back { display: inline-block; margin-bottom: 18px; font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="./">&larr; Back to map</a>
+
+<h1>Methodology &amp; sources</h1>
+<p><em>Last updated: 2026-05-04</em></p>
+
+<p>This map compares two ways of measuring density in New York City:</p>
+<ol>
+  <li><strong>Residential density</strong> &mdash; how many people actually live in a place, per acre. Computed at the 2020 Census block level (the smallest geography the Census Bureau publishes population for).</li>
+  <li><strong>Built environment</strong> &mdash; the physical mass of buildings, by roof height. Each polygon is one building footprint; its 3D height is the actual measured roof height in feet.</li>
+</ol>
+
+<p>The same map, two different stories. The contrast is the point: <strong>tall buildings are not the same as crowded neighborhoods.</strong> Midtown towers are full of office workers during the day, but at night they are nearly empty. Brownstone Brooklyn looks short and quiet from a satellite, but plenty of people sleep there.</p>
+
+<h2>Residential layer</h2>
+
+<h3>Geographies</h3>
+<p>NYC Department of City Planning, <strong>2020 Census Blocks (shoreline-clipped)</strong>, dataset <code>wmsu-5muw</code> on NYC Open Data. 37,588 blocks across the five boroughs.</p>
+<p>Source: <a href="https://data.cityofnewyork.us/City-Government/2020-Census-Blocks/wmsu-5muw">data.cityofnewyork.us/City-Government/2020-Census-Blocks/wmsu-5muw</a></p>
+
+<h3>Population counts</h3>
+<p>U.S. Census Bureau, <strong>2020 Decennial Census, P.L. 94-171 redistricting file, Table P1 (total population)</strong>, joined to the blocks on the 15-digit GEOID20.</p>
+<p>API endpoint used:</p>
+<pre><code>https://api.census.gov/data/2020/dec/pl?get=P1_001N,GEO_ID&amp;for=block:*&amp;in=state:36+county:005,047,061,081,085</code></pre>
+
+<h3>Density calculation</h3>
+<p>Density is computed as <code>persons_per_acre = total_population / land_area_acres</code>. Land area comes from the <code>shape_area</code> field on each block, which is in square feet (NY State Plane Long Island foot units). One acre = 43,560 ft&sup2;.</p>
+
+<h3>Filters</h3>
+<ul>
+  <li>Blocks with zero population are <strong>excluded</strong> &mdash; these are mostly parks, rail yards, water, industrial sites, and cemeteries. Including them as flat polygons would clutter the map without adding information. 6,896 blocks dropped (~18%).</li>
+  <li>30,692 populated blocks are shown.</li>
+</ul>
+
+<h3>Height multiplier</h3>
+<p>Persons-per-acre values are too small to read in 3D without amplification &mdash; a block with 100 persons/acre would be a polygon 100 feet tall, invisible against towers in the same view. The <strong>height multiplier</strong> control on the map (default &times;8) scales the extruded height so blocks read as visual mass, not literal feet. The multiplier is exposed as a control because it's an arbitrary visual choice, not a measurement. Color encodes the underlying density value; height is for readability.</p>
+
+<h3>Color ramp (residential)</h3>
+<table>
+  <tr><th>Persons/acre</th><th>Color</th></tr>
+  <tr><td>0</td><td><code>#fde725</code> yellow</td></tr>
+  <tr><td>50</td><td><code>#5ec962</code> green</td></tr>
+  <tr><td>150</td><td><code>#21918c</code> teal</td></tr>
+  <tr><td>300</td><td><code>#3b528b</code> blue</td></tr>
+  <tr><td>600</td><td><code>#440154</code> purple</td></tr>
+</table>
+<p>Linear interpolation between breakpoints. Viridis ramp, color-blind safe.</p>
+
+<h2>Built environment layer</h2>
+
+<h3>Source</h3>
+<p>NYC Department of Information Technology &amp; Telecommunications (DoITT), <strong>Building Footprints</strong>, dataset <code>5zhs-2jue</code> on NYC Open Data. 1,082,887 buildings citywide.</p>
+<p>Source: <a href="https://data.cityofnewyork.us/Housing-Development/Building-Footprints/5zhs-2jue">data.cityofnewyork.us/Housing-Development/Building-Footprints/5zhs-2jue</a></p>
+
+<h3>Field used for height</h3>
+<p><code>height_roof</code> &mdash; the elevation of the building's roof above ground, in feet. Sourced from city LiDAR.</p>
+
+<h3>Filters</h3>
+<ul>
+  <li>Only buildings with <code>height_roof &gt; 0</code> are included. Some footprints have no LiDAR-derived height (often new construction, demolitions, or features misclassified as buildings) and are excluded.</li>
+  <li>1,082,139 buildings shown.</li>
+</ul>
+
+<h3>Color ramp (built)</h3>
+<table>
+  <tr><th>Roof height (ft)</th><th>Color</th></tr>
+  <tr><td>0</td><td><code>#f7f4f9</code> off-white</td></tr>
+  <tr><td>50</td><td><code>#d4b9da</code> lavender</td></tr>
+  <tr><td>150</td><td><code>#df65b0</code> magenta</td></tr>
+  <tr><td>400</td><td><code>#ce1256</code> red-pink</td></tr>
+  <tr><td>1,000</td><td><code>#67001f</code> deep red</td></tr>
+</table>
+<p>Linear interpolation between breakpoints. Building heights are shown to scale (no multiplier).</p>
+
+<h2>Tile pipeline</h2>
+<p>Data was tiled with <a href="https://github.com/felt/tippecanoe">tippecanoe</a> into PMTiles archives, served as static files. The browser reads only the byte ranges for tiles in view, so neither the 17 MB residential file nor the 69 MB buildings file is downloaded in full.</p>
+
+<h2>Limitations</h2>
+<ul>
+  <li><strong>Daytime population is not shown.</strong> The residential layer reflects nighttime/where-people-sleep population. Midtown's daytime population is roughly ten times its residential population. A daytime layer is on the to-do list (LEHD LODES workplace data).</li>
+  <li><strong>Block-level population is averaged.</strong> A single Census block may include both a 30-story apartment building and a vacant lot &mdash; the density value averages across the block.</li>
+  <li><strong>Roof height is not floor count.</strong> A 200-ft warehouse and a 200-ft 20-story apartment building look the same in the Built view. Floor counts and residential unit counts (from <a href="https://www.nyc.gov/site/planning/data-maps/open-data/dwn-pluto-mappluto.page">MapPLUTO</a>) could be added later.</li>
+  <li><strong>Building footprints are the city's best LiDAR-derived snapshot, not real-time.</strong> Some recent demolitions or new construction may not be reflected.</li>
+  <li><strong>The basemap is &copy; CARTO &copy; OpenStreetMap contributors</strong>, served via raster tiles.</li>
+</ul>
+
+<h2>Reproducing</h2>
+<p>The full pipeline is two Python scripts and two tippecanoe commands:</p>
+<pre><code>python3 scripts/build_population.py
+python3 scripts/build_buildings.py
+tippecanoe -zg --drop-densest-as-needed -l blocks    -o data/pop_blocks.pmtiles data/blocks_pop.ndjson
+tippecanoe -zg --no-feature-limit --no-tile-size-limit --simplification=8 -l buildings -o data/buildings.pmtiles data/buildings.ndjson</code></pre>
+
+</main>
+</body>
+</html>

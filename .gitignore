@@ -1,0 +1,8 @@
+node_modules/
+data/blocks_raw.geojson
+data/buildings_raw.geojson
+data/p1_raw.json
+data/buildings.ndjson
+data/blocks_pop.ndjson
+data/buildings_progress.log
+.DS_Store
