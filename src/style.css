@@ -57,6 +57,70 @@ h1 {
   font-size: 12.5px;
 }
 
+.big-toggle {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  z-index: 6;
+}
+
+.big-toggle-btn {
+  background: transparent;
+  border: 0;
+  padding: 12px 28px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.big-toggle-btn:hover { color: #111; }
+
+.big-toggle-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+.big-toggle-btn.active .kbd-hint {
+  background: rgba(255, 255, 255, 0.22);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.kbd-hint {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  background: #eee6d4;
+  color: #555;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 1px 5px;
+  line-height: 1.2;
+}
+
+@media (max-width: 700px) {
+  .big-toggle { top: 8px; }
+  .big-toggle-btn { padding: 10px 18px; font-size: 14px; }
+  .kbd-hint { display: none; }
+}
+
 .toggle {
   display: flex;
   border: 1px solid var(--rule);

@@ -40,20 +40,6 @@ const STYLE = {
     { id: "basemap", type: "raster", source: "basemap" },
     { id: "basemap_dark", type: "raster", source: "basemap_dark", layout: { visibility: "none" } },
   ],
-  light: {
-    anchor: "viewport",
-    color: "#ffffff",
-    intensity: 0.45,
-    position: [1.5, 90, 80],
-  },
-  sky: {
-    "sky-color": "#0b0e1f",
-    "sky-horizon-blend": 0.6,
-    "horizon-color": "#1d2a4a",
-    "horizon-fog-blend": 0.7,
-    "fog-color": "#0b0e1f",
-    "fog-ground-blend": 0.4,
-  },
 };
 
 const map = new maplibregl.Map({
@@ -240,6 +226,17 @@ function setupToggle() {
 
   btnPop.addEventListener("click", showPop);
   btnBldg.addEventListener("click", showBldg);
+
+  // Keyboard shortcuts: 1 = Residential, 2 = Built, T or Space = toggle
+  document.addEventListener("keydown", (e) => {
+    if (e.target && /input|select|textarea/i.test(e.target.tagName)) return;
+    if (e.key === "1") { showPop(); e.preventDefault(); }
+    else if (e.key === "2") { showBldg(); e.preventDefault(); }
+    else if (e.key === "t" || e.key === "T" || e.key === " ") {
+      if (activeView === "pop") showBldg(); else showPop();
+      e.preventDefault();
+    }
+  });
 
   const multSelect = document.getElementById("mult");
   const multVal = document.getElementById("mult-val");
