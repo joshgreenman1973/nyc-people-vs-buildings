@@ -60,6 +60,11 @@ def main():
             if area_sqft <= 0:
                 continue
             acres = area_sqft / 43560.0
+            # Drop blocks smaller than 0.1 acres. These are typically
+            # measurement-noise polygons (single-lot remnants) where
+            # pop/acre divides into unreliable extremes.
+            if acres < 0.1:
+                continue
             ppa = popcount / acres
             slim = {
                 "type": "Feature",

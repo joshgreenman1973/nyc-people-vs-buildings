@@ -68,7 +68,8 @@
 <h3>Filters</h3>
 <ul>
   <li>Blocks with zero population are <strong>excluded</strong> &mdash; these are mostly parks, rail yards, water, industrial sites, and cemeteries. Including them as flat polygons would clutter the map without adding information. 6,896 blocks dropped (~18%).</li>
-  <li>30,692 populated blocks are shown.</li>
+  <li>Blocks smaller than <strong>0.1 acres</strong> are excluded &mdash; these are typically measurement-noise polygons (single-lot remnants left by the shoreline-clipping process) where dividing population by tiny area produces unreliable extreme values. 3 blocks dropped.</li>
+  <li>30,689 populated blocks are shown.</li>
 </ul>
 
 <h3>Height multiplier</h3>

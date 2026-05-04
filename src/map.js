@@ -38,13 +38,42 @@ const map = new maplibregl.Map({
   bearing: -22,
   maxZoom: 17,
   minZoom: 9,
+  maxPitch: 85,
   hash: true,
   attributionControl: { compact: true },
+  dragRotate: true,
+  pitchWithRotate: true,
+  touchPitch: true,
 });
 
-map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true, showCompass: true, showZoom: true }), "bottom-right");
 
 window.map = map;
+
+let orbitRAF = null;
+let orbitLastTs = null;
+function startOrbit() {
+  stopOrbit();
+  const speedDegPerSec = 8;
+  orbitLastTs = null;
+  function step(ts) {
+    if (orbitLastTs == null) orbitLastTs = ts;
+    const dt = (ts - orbitLastTs) / 1000;
+    orbitLastTs = ts;
+    map.setBearing(map.getBearing() - speedDegPerSec * dt);
+    orbitRAF = requestAnimationFrame(step);
+  }
+  orbitRAF = requestAnimationFrame(step);
+}
+function stopOrbit() {
+  if (orbitRAF) {
+    cancelAnimationFrame(orbitRAF);
+    orbitRAF = null;
+  }
+}
+map.on("mousedown", stopOrbit);
+map.on("touchstart", stopOrbit);
+map.on("wheel", stopOrbit);
 
 let multiplier = 8;
 
@@ -100,7 +129,32 @@ map.on("load", () => {
 
   setupToggle();
   setupTooltip();
+  setupOrbitButton();
+  setupRotateButtons();
 });
+
+function setupOrbitButton() {
+  const btn = document.getElementById("btn-orbit");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    if (orbitRAF) {
+      stopOrbit();
+      btn.classList.remove("active");
+      btn.textContent = "Auto-rotate";
+    } else {
+      startOrbit();
+      btn.classList.add("active");
+      btn.textContent = "Stop rotating";
+    }
+  });
+}
+
+function setupRotateButtons() {
+  const left = document.getElementById("btn-rot-l");
+  const right = document.getElementById("btn-rot-r");
+  if (left) left.addEventListener("click", () => map.easeTo({ bearing: map.getBearing() + 30, duration: 400 }));
+  if (right) right.addEventListener("click", () => map.easeTo({ bearing: map.getBearing() - 30, duration: 400 }));
+}
 
 function setupToggle() {
   const btnPop = document.getElementById("btn-pop");
